@@ -1,26 +1,232 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/* ====================================
+   HEALTH PREDICT PRO MAX DESIGN
+   Style: Clinical Glass / Neo-Medical
+   ==================================== */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-outfit);
+  --font-mono: var(--font-urbanist);
+
+  /* Health-specific colors */
+  --color-health-excellent: var(--health-excellent);
+  --color-health-good: var(--health-good);
+  --color-health-warning: var(--health-warning);
+  --color-health-danger: var(--health-danger);
+
+  /* System Colors */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* UI Elements */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart Colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Precision Geometry */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Base - Clean Medical White */
+  --background: oklch(0.99 0.002 180);
+  --foreground: oklch(0.12 0.01 200);
+
+  /* Primary - Bio-Digital Emerald */
+  --primary: oklch(0.55 0.18 160);
+  --primary-foreground: oklch(0.99 0.00 0);
+
+  /* Secondary - Titanium Slate */
+  --secondary: oklch(0.96 0.005 200);
+  --secondary-foreground: oklch(0.20 0.02 200);
+
+  /* Accent - Pulse Cyan */
+  --accent: oklch(0.96 0.01 190);
+  --accent-foreground: oklch(0.25 0.04 190);
+
+  /* Muted - Subtle Grid */
+  --muted: oklch(0.96 0.005 200);
+  --muted-foreground: oklch(0.50 0.02 200);
+
+  /* Card - Frosted Glass Base */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0.01 200);
+
+  /* Edges */
+  --border: oklch(0.92 0.005 200);
+  --input: oklch(0.92 0.005 200);
+  --ring: oklch(0.55 0.18 160);
+
+  /* Medical Status Colors (Vibrant) */
+  --health-excellent: oklch(0.60 0.22 150);
+  /* Vivid Emerald */
+  --health-good: oklch(0.70 0.18 110);
+  /* Lime */
+  --health-warning: oklch(0.68 0.20 50);
+  /* Amber */
+  --health-danger: oklch(0.55 0.25 25);
+  /* Alert Red */
+
+  /* Data Viz Colors */
+  --chart-1: oklch(0.55 0.18 160);
+  /* Primary Emerald */
+  --chart-2: oklch(0.50 0.20 250);
+  /* Deep Blue */
+  --chart-3: oklch(0.68 0.20 50);
+  /* Amber */
+  --chart-4: oklch(0.60 0.22 150);
+  /* Green */
+  --chart-5: oklch(0.55 0.25 25);
+  /* Red */
+}
+
+.dark {
+  /* Base - Deep Clinical Navy */
+  --background: oklch(0.10 0.02 230);
+  --foreground: oklch(0.98 0.01 200);
+
+  /* Primary - Neon Emerald */
+  --primary: oklch(0.65 0.22 160);
+  --primary-foreground: oklch(0.10 0.02 230);
+
+  /* Secondary - Dark Glass */
+  --secondary: oklch(0.15 0.03 230);
+  --secondary-foreground: oklch(0.98 0.01 200);
+
+  /* Accent */
+  --accent: oklch(0.20 0.05 190);
+  --accent-foreground: oklch(0.98 0.01 200);
+
+  /* Muted */
+  --muted: oklch(0.15 0.03 230);
+  --muted-foreground: oklch(0.65 0.04 200);
+
+  /* Card - Elevated Dark Glass */
+  --card: oklch(0.13 0.02 230);
+  --card-foreground: oklch(0.98 0.01 200);
+
+  /* Edges - Glowing Border */
+  --border: oklch(0.25 0.05 230);
+  --input: oklch(0.25 0.05 230);
+  --ring: oklch(0.65 0.22 160);
+
+  /* Health Colors (Dark Mode Glow) */
+  --health-excellent: oklch(0.70 0.20 150);
+  --health-good: oklch(0.80 0.16 110);
+  --health-warning: oklch(0.75 0.18 50);
+  --health-danger: oklch(0.65 0.24 25);
+
+  /* Chart Colors */
+  --chart-1: oklch(0.65 0.22 160);
+  --chart-2: oklch(0.60 0.20 250);
+  --chart-3: oklch(0.75 0.18 50);
+  --chart-4: oklch(0.70 0.20 150);
+  --chart-5: oklch(0.65 0.24 25);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+    /* Subtle background grid */
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus ring for accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+
+  /* Health status utilities */
+  .health-excellent {
+    @apply text-[var(--health-excellent)];
+  }
+
+  .health-good {
+    @apply text-[var(--health-good)];
+  }
+
+  .health-warning {
+    @apply text-[var(--health-warning)];
+  }
+
+  .health-danger {
+    @apply text-[var(--health-danger)];
+  }
+
+  /* Glassmorphism alternative - Sharp borders */
+  .card-elevated {
+    @apply bg-card border-2 border-border shadow-lg;
+  }
+
+  /* Smooth animations with GPU acceleration */
+  .animate-smooth {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+  }
+
+  /* Reduce motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-smooth {
+      transition: none;
+    }
+  }
+
+  /* Medical Glass Card */
+  .card-pro {
+    @apply bg-card/80 backdrop-blur-md border border-border shadow-lg;
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1),
+      inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  }
+
+  .dark .card-pro {
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.3),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+  }
+
+  /* Status Text Glow */
+  .text-glow-excellent {
+    text-shadow: 0 0 20px var(--health-excellent);
+  }
 }
