@@ -1,20 +1,28 @@
 import type { Metadata } from "next";
-import { Outfit, Urbanist } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/components/navbar";
+import { HealthProvider } from "@/lib/health-context";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-});
-
-const urbanist = Urbanist({
-  variable: "--font-urbanist",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "HealthPredict | Pro Max",
   description: "Predict health risks using daily lifestyle data with AI-powered analysis",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "HealthTwin",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({
@@ -25,9 +33,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${outfit.variable} ${urbanist.variable} font-sans antialiased`}
+        className={`${inter.variable} font-sans antialiased bg-background text-foreground`}
       >
-        {children}
+        <HealthProvider>
+          <Navbar />
+          {children}
+        </HealthProvider>
       </body>
     </html>
   );
