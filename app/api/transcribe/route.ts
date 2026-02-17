@@ -39,8 +39,7 @@ export async function POST(req: Request) {
         console.log(`✅ Transcription: "${transcription.text}"`);
 
         return new Response(JSON.stringify({
-            text: transcription.text,
-            duration: transcription.duration || 0
+            text: transcription.text
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }

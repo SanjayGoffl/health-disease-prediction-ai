@@ -41,7 +41,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Button size="lg" className="h-14 px-8 rounded-full text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105" asChild>
-              <Link href="/dashboard">
+              <Link href="/signup">
                 Start Your Journey <Zap className="ml-2 w-5 h-5 fill-current" />
               </Link>
             </Button>

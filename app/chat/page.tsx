@@ -1,44 +1,182 @@
 "use client";
 
-import { useChat } from 'ai/react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User, Sparkles, Mic, Paperclip, Square } from "lucide-react";
+import { Send, Bot, Sparkles, Mic, Paperclip, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from 'react';
 import { cn } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
 
+import { useAuth } from "@/components/auth-provider";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, query, orderBy, getDocs, serverTimestamp } from "firebase/firestore";
 import { useHealth } from "@/lib/health-context";
 
-export default function ChatPage() {
-    const { healthData, userProfile } = useHealth();
+interface ChatMessage {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+}
 
-    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-        body: {
-            dataContext: healthData,
-            userProfile: userProfile
-        }
-    });
+export default function ChatPage() {
+    const { healthData } = useHealth();
+    const { user } = useAuth();
+
+    const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+    const [input, setInput] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = React.useState(true);
+    const [showSuggestions, setShowSuggestions] = React.useState(true);
 
     const [files, setFiles] = React.useState<FileList | undefined>(undefined);
     const [isRecording, setIsRecording] = React.useState(false);
     const [isTranscribing, setIsTranscribing] = React.useState(false);
     const [toast, setToast] = React.useState<{ message: string; type: "info" | "success" | "error" } | null>(null);
+
     const inputRef = React.useRef<HTMLInputElement>(null);
     const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
     const audioChunksRef = React.useRef<Blob[]>([]);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
 
     const showToast = (message: string, type: "info" | "success" | "error" = "info") => {
         setToast({ message, type });
     };
 
+    // Firestore Helper
+    const saveMessageToDb = async (role: 'user' | 'assistant', content: string) => {
+        if (!user) return;
+        try {
+            await addDoc(collection(db, "users", user.uid, "messages"), {
+                role,
+                content,
+                createdAt: serverTimestamp()
+            });
+        } catch (e) {
+            console.error("Error saving message", e);
+        }
+    };
+
+    // Load History
+    React.useEffect(() => {
+        if (!user) return;
+        const loadHistory = async () => {
+            const q = query(
+                collection(db, "users", user.uid, "messages"),
+                orderBy("createdAt", "asc")
+            );
+            const snapshot = await getDocs(q);
+            const history: ChatMessage[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                role: doc.data().role as 'user' | 'assistant',
+                content: doc.data().content
+            }));
+
+            if (history.length > 0) {
+                setMessages(history);
+                setShowSuggestions(false);
+            }
+            setIsLoadingHistory(false);
+        };
+        loadHistory();
+    }, [user]);
+
+    // Auto-scroll
+    React.useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    // Manual stream-based chat submit
+    const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const trimmed = input.trim();
+        if (!trimmed || isLoading) return;
+
+        const userMsg: ChatMessage = {
+            id: `user-${Date.now()}`,
+            role: 'user',
+            content: trimmed
+        };
+
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+        setShowSuggestions(false);
+        setIsLoading(true);
+        saveMessageToDb('user', trimmed);
+
+        const assistantId = `assistant-${Date.now()}`;
+        setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+
+        try {
+            const allMessages = [...messages, userMsg].map(m => ({
+                role: m.role,
+                content: m.content
+            }));
+
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: allMessages,
+                    dataContext: healthData
+                }),
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
+
+            const reader = res.body?.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullResponse += chunk;
+
+                    // Update the assistant message with accumulated text
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === assistantId
+                                ? { ...m, content: fullResponse }
+                                : m
+                        )
+                    );
+                }
+            }
+
+            saveMessageToDb('assistant', fullResponse);
+
+        } catch (error: any) {
+            console.error("Chat Error:", error);
+            showToast(`Error: ${error.message}`, "error");
+
+            // Remove the empty assistant message on error
+            setMessages(prev => prev.filter(m => m.id !== assistantId));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Suggestion chip click
+    const handleSuggestionClick = (q: string) => {
+        setInput(q);
+        setShowSuggestions(false);
+        inputRef.current?.focus();
+    };
+
+    // Voice input
     const handleVoiceInput = async () => {
         if (isRecording) {
-            // Stop recording
             stopRecording();
         } else {
-            // Start recording
             startRecording();
         }
     };
@@ -47,35 +185,24 @@ export default function ChatPage() {
         try {
             showToast("Requesting microphone...", "info");
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'audio/webm'
-            });
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
             mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
             };
 
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 stream.getTracks().forEach(track => track.stop());
-
-                // Send to Groq for transcription
                 await transcribeAudio(audioBlob);
             };
 
             mediaRecorder.start();
             setIsRecording(true);
             showToast("🎤 Recording... Click again to stop", "info");
-            console.log("✅ Recording started");
-
         } catch (error: any) {
-            console.error("❌ Microphone access failed:", error);
-
             if (error.name === 'NotAllowedError') {
                 showToast("Mic blocked. Enable in browser settings.", "error");
             } else if (error.name === 'NotFoundError') {
@@ -92,7 +219,6 @@ export default function ChatPage() {
             setIsRecording(false);
             setIsTranscribing(true);
             showToast("Processing audio...", "info");
-            console.log("✅ Recording stopped");
         }
     };
 
@@ -101,44 +227,23 @@ export default function ChatPage() {
             const formData = new FormData();
             formData.append('audio', audioBlob, 'recording.webm');
 
-            console.log(`📤 Sending ${audioBlob.size} bytes to Groq...`);
-
             const response = await fetch('/api/transcribe', {
                 method: 'POST',
                 body: formData
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Transcription failed');
-            }
+            if (!response.ok) throw new Error(data.error || 'Transcription failed');
 
             const transcript = data.text.trim();
-            console.log(`✅ Transcription: "${transcript}"`);
-
-            // Append to input
-            const currentValue = inputRef.current?.value || '';
-            const newValue = currentValue ? `${currentValue} ${transcript}` : transcript;
-            handleInputChange({ target: { value: newValue } } as any);
-
+            setInput(prev => prev ? `${prev} ${transcript}` : transcript);
             showToast(`Got it: "${transcript}"`, "success");
-
         } catch (error: any) {
-            console.error("❌ Transcription error:", error);
             showToast(`Transcription failed: ${error.message}`, "error");
         } finally {
             setIsTranscribing(false);
         }
     };
-
-    const scrollRef = React.useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages]);
 
     const isMicActive = isRecording || isTranscribing;
 
@@ -166,7 +271,7 @@ export default function ChatPage() {
                         {messages.length === 0 && (
                             <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground opacity-50 space-y-4">
                                 <Sparkles className="w-12 h-12" />
-                                <p>Type "Why am I tired?" to see the magic.</p>
+                                <p>Type &quot;Why am I tired?&quot; to see the magic.</p>
                             </div>
                         )}
 
@@ -182,12 +287,12 @@ export default function ChatPage() {
                                     )}
                                 >
                                     <div className={cn(
-                                        "flex max-w-[80%] rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm",
+                                        "flex max-w-[80%] rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap",
                                         m.role === 'user'
                                             ? "bg-primary text-white rounded-br-none"
                                             : "bg-secondary text-foreground rounded-bl-none"
                                     )}>
-                                        {m.content}
+                                        {m.content || (m.role === 'assistant' && isLoading ? '' : m.content)}
                                     </div>
                                 </motion.div>
                             ))}
@@ -226,31 +331,24 @@ export default function ChatPage() {
                         </div>
                     )}
 
-                    {/* Suggested Questions */}
-                    <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
-                        {["How is my sleep?", "Reduce stress tips?", "Am I hydrated?"].map((q, i) => (
-                            <button
-                                key={i}
-                                onClick={() => {
-                                    const event = { target: { value: q } } as any;
-                                    handleInputChange(event);
-                                }}
-                                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-secondary/50 text-xs font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-                            >
-                                {q}
-                            </button>
-                        ))}
-                    </div>
+                    {/* Suggested Questions — only visible initially or when no messages */}
+                    {showSuggestions && messages.length === 0 && (
+                        <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
+                            {["How is my sleep?", "Reduce stress tips?", "Am I hydrated?"].map((q, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => handleSuggestionClick(q)}
+                                    className="whitespace-nowrap px-3 py-1.5 rounded-full bg-secondary/50 text-xs font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                                >
+                                    {q}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Input Area */}
                     <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSubmit(e, {
-                                experimental_attachments: files,
-                            } as any);
-                            setFiles(undefined);
-                        }}
+                        onSubmit={handleFormSubmit}
                         className="p-4 bg-secondary/20 border-t border-border flex items-center gap-3"
                     >
                         {/* Image Upload */}
@@ -261,9 +359,7 @@ export default function ChatPage() {
                             accept="image/*"
                             multiple
                             onChange={event => {
-                                if (event.target.files) {
-                                    setFiles(event.target.files);
-                                }
+                                if (event.target.files) setFiles(event.target.files);
                             }}
                         />
                         <Button
@@ -299,7 +395,7 @@ export default function ChatPage() {
                         <Input
                             ref={inputRef as any}
                             value={input}
-                            onChange={handleInputChange}
+                            onChange={(e) => setInput(e.target.value)}
                             placeholder={
                                 isTranscribing
                                     ? "🔄 Transcribing..."

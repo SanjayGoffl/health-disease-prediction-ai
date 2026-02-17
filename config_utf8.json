@@ -1,0 +1,17 @@
+﻿{
+  "status": "success",
+  "result": {
+    "fileName": "firebase-js-config.json",
+    "fileContents": "{\n  \"projectId\": \"health-predict-ai-2026\",\n  \"appId\": \"1:459987988665:web:269dd8593e5af4d5c3ab68\",\n  \"storageBucket\": \"health-predict-ai-2026.firebasestorage.app\",\n  \"apiKey\": \"AIzaSyDCzDViDGDXJo8YUbmdtGp7Az6Llg6fyDE\",\n  \"authDomain\": \"health-predict-ai-2026.firebaseapp.com\",\n  \"messagingSenderId\": \"459987988665\",\n  \"projectNumber\": \"459987988665\",\n  \"version\": \"2\"\n}",
+    "sdkConfig": {
+      "projectId": "health-predict-ai-2026",
+      "appId": "1:459987988665:web:269dd8593e5af4d5c3ab68",
+      "storageBucket": "health-predict-ai-2026.firebasestorage.app",
+      "apiKey": "AIzaSyDCzDViDGDXJo8YUbmdtGp7Az6Llg6fyDE",
+      "authDomain": "health-predict-ai-2026.firebaseapp.com",
+      "messagingSenderId": "459987988665",
+      "projectNumber": "459987988665",
+      "version": "2"
+    }
+  }
+}

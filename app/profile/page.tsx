@@ -7,8 +7,31 @@ import { Switch } from "@/components/ui/switch";
 import { User, Mail, Shield, Bell, LogOut, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useAuth } from "@/components/auth-provider";
+import { useHealth, calculateScore } from "@/lib/health-context";
 
 export default function ProfilePage() {
+    const { user, signOut } = useAuth();
+    const { healthData } = useHealth();
+
+    // Calculate current score
+    const currentScore = calculateScore(healthData);
+
+    const joinedDate = user?.metadata.creationTime
+        ? new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(user.metadata.creationTime))
+        : "Jan 2026";
+
+    // Generate a pseudo-ID from UID
+    const userId = user?.uid ? `${user.uid.slice(0, 3).toUpperCase()}-${user.uid.slice(-3).toUpperCase()}` : "GUEST";
+
+    if (!user) {
+        return (
+            <div className="min-h-screen pt-24 flex items-center justify-center">
+                <p>Please log in to view your profile.</p>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-background pt-24 pb-20 px-4 md:px-8 flex flex-col items-center">
             <div className="max-w-2xl w-full space-y-8">
@@ -24,7 +47,17 @@ export default function ProfilePage() {
                     <div className="relative mt-4 mb-4">
                         <div className="w-24 h-24 rounded-full bg-white p-1 shadow-xl">
                             <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                                <User className="w-10 h-10 text-muted-foreground" />
+                                {user.photoURL ? (
+                                    <img
+                                        src={user.photoURL}
+                                        alt={user.displayName || "User"}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : user.displayName ? (
+                                    <span className="text-3xl font-bold text-primary">{user.displayName[0].toUpperCase()}</span>
+                                ) : (
+                                    <User className="w-10 h-10 text-muted-foreground" />
+                                )}
                             </div>
                         </div>
                         <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full border-2 border-white flex items-center justify-center">
@@ -32,15 +65,15 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <h1 className="text-2xl font-bold">User Profile</h1>
-                    <p className="text-muted-foreground">Standard Member • Since Jan 2026</p>
+                    <h1 className="text-2xl font-bold">{user.displayName || "User"}</h1>
+                    <p className="text-muted-foreground">Standard Member • Since {joinedDate}</p>
 
                     <div className="flex gap-2 mt-6">
                         <div className="px-4 py-2 rounded-full bg-secondary/50 text-xs font-medium uppercase tracking-wider">
-                            ID: 883-291
+                            ID: {userId}
                         </div>
                         <div className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium uppercase tracking-wider">
-                            Health Score: 85
+                            Health Score: {currentScore}
                         </div>
                     </div>
                 </motion.div>
@@ -61,11 +94,11 @@ export default function ProfilePage() {
                         <div className="grid gap-4">
                             <div className="grid gap-2">
                                 <Label>Full Name</Label>
-                                <Input defaultValue="Alex Doe" className="bg-secondary/20" />
+                                <Input defaultValue={user.displayName || ""} className="bg-secondary/20" readOnly />
                             </div>
                             <div className="grid gap-2">
                                 <Label>Email</Label>
-                                <Input defaultValue="alex@example.com" className="bg-secondary/20" />
+                                <Input defaultValue={user.email || ""} className="bg-secondary/20" readOnly />
                             </div>
                         </div>
                     </motion.div>
@@ -109,7 +142,11 @@ export default function ProfilePage() {
                             <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> Data & Privacy</span>
                             <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </Button>
-                        <Button variant="destructive" className="w-full h-12 rounded-xl opacity-90 hover:opacity-100">
+                        <Button
+                            variant="destructive"
+                            className="w-full h-12 rounded-xl opacity-90 hover:opacity-100"
+                            onClick={signOut}
+                        >
                             <LogOut className="mr-2 w-4 h-4" /> Sign Out
                         </Button>
                     </motion.div>

@@ -17,7 +17,7 @@ export default function HistoryPage() {
         score: h.score
     })) : undefined;
 
-    // Mock Calendar Grid (Keep for aesthetics, maybe map real data later)
+    // Mock Calendar Grid (Keep for aesthetics)
     const days = Array.from({ length: 30 }, (_, i) => ({
         day: i + 1,
         score: Math.floor(Math.random() * (100 - 60) + 60),

@@ -24,7 +24,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.29.2",
+    "firebase": "^12.9.0",
+    "framer-motion": "^12.34.0",
     "groq-sdk": "^0.37.0",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -33,7 +34,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
